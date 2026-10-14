@@ -1,0 +1,12 @@
+# Core
+pandas==2.2.2
+numpy==1.26.4
+yfinance==0.2.43
+requests==2.32.3
+# ML (small for free RAM)
+lightgbm==4.3.0
+scikit-learn==1.5.1
+joblib==1.4.2
+# Web UI
+streamlit==1.37.1
+plotly==5.22.0

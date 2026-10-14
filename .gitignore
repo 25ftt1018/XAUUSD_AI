@@ -1,0 +1,9 @@
+__pycache__/
+.venv/
+venv/
+*.pyc
+data/*.csv
+data/*.parquet
+models/*.txt
+models/*.pkl
+.streamlit/secrets.toml
