@@ -15,6 +15,11 @@ from config import DATA_DIR
 
 CACHE = DATA_DIR / "news_cache.json"
 URL = "https://nfs.faireconomy.media/ff_calendar_thisweek.xml"
+_LAST_SOURCE = "unknown"
+
+
+def last_source() -> str:
+    return _LAST_SOURCE
 
 KEYWORDS = ("CPI", "NFP", "Non-Farm", "FOMC", "Fed ", "Powell", "PPI",
             "Retail Sales", "ISM", "Payrolls", "Unemployment", "Interest Rate",
@@ -58,28 +63,36 @@ def update_calendar() -> list[dict]:
 
 
 def _fallback() -> list[dict]:
+    global _LAST_SOURCE
     try:
         fb = json.loads((Path(__file__).parent / "news_fallback.json").read_text())
+        _LAST_SOURCE = "bundled snapshot"
         return fb["events"]
     except Exception:
         return []
 
 
 def load_events(max_age_h: int = 24 * 7) -> list[dict]:
+    global _LAST_SOURCE
     try:
         cache = json.loads(CACHE.read_text())
         age = datetime.now(timezone.utc) - datetime.fromisoformat(cache["updated"])
         if age < timedelta(hours=max_age_h):
+            _LAST_SOURCE = f"cache ({int(age.total_seconds() // 3600)}h old)"
             return cache["events"]
     except Exception:
         pass
     try:
-        return update_calendar()
+        evs = update_calendar()
+        _LAST_SOURCE = "live XML"
+        return evs
     except Exception as e:
         print(f"News fetch failed (non-fatal, using fallback): {e}")
+        _LAST_SOURCE = f"fallback ({e})"
         try:
             evs = json.loads(CACHE.read_text())["events"]
             if evs:
+                _LAST_SOURCE = "stale cache (live failed)"
                 return evs
         except Exception:
             pass

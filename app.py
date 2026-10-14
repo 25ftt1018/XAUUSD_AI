@@ -114,8 +114,21 @@ try:
             _b, _b_txt, _pill = {"why": []}, "n/a", "neu"
         st.caption(f"Positioning bias, not a prediction: **{_b_txt}** — {', '.join(_b.get('why', []))}")
         _now = datetime.now(timezone.utc)
+        _evs, _err = [], None
+        try:
+            _evs = _load_events()
+        except Exception as _e:
+            _err = str(_e)
+        from src.news import last_source as _src
+        try:
+            _src_txt = _src()
+        except Exception:
+            _src_txt = "?"
+        st.caption(f"Source: {_src_txt}")
+        if _err:
+            st.warning(f"News load error: {_err}")
         _rows, _past = [], []
-        for _e in _load_events():
+        for _e in _evs:
             _t = datetime.fromisoformat(_e["time_utc"])
             _mins = (_t - _now).total_seconds() / 60
             if _mins >= -30:
@@ -147,8 +160,8 @@ try:
                     ", ".join(f"{_e['title']} ✅ ({_w})" for _, _e, _w in sorted(_past)[-3:]))
             else:
                 st.write("No events cached. Tap ↻ Refresh (Sunday rotation / network).")
-except Exception:
-    pass
+except Exception as _outer_e:
+    st.warning(f"News section error: {_outer_e}")
 
 BASE = Path(__file__).parent
 h1_path = BASE / "data" / "xau_h1.csv"
@@ -164,6 +177,8 @@ try:
     else:
         from src.signal import get_signal as _get
     s = _get()
+    from datetime import datetime, timezone
+    _loaded = datetime.now(timezone.utc)
     side = s["side"]
     card_cls = "buy" if side == "BUY" else "sell" if side == "SELL" else "wait"
     side_cls = "side-buy" if side == "BUY" else "side-sell" if side == "SELL" else "side-wait"
@@ -232,7 +247,7 @@ try:
     {_cell("TP 3", f'{s.get("tp3"):,.2f}' if s.get("tp3") else None, "tp " + _off, "+3R")}
   </div>
   <div class="screener">🪙 XAUUSD SCREENER<br>{scr_html}</div>
-  <div class="sent">● SENT: {s["time"]}</div>
+  <div class="sent">● SIGNAL CANDLE: {s["time"]} • CARD LOADED: {_loaded:%H:%M:%S} UTC<br>P/L ticks live (30s) • signal changes on new candle/retrain only</div>
 </div>""", unsafe_allow_html=True)
 except Exception as e:
     st.warning(f"Signal unavailable. ({e})")
