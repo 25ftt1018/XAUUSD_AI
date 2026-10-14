@@ -59,8 +59,17 @@ st.markdown(CSS, unsafe_allow_html=True)
 st.markdown("<h2 style='text-align:center'>🪙 XAUUSD AI Signals</h2>", unsafe_allow_html=True)
 st.caption("Free Plan A • H1/M15 • Educational only, not financial advice.")
 
+with st.expander("⚙️ Display", expanded=False):
+    _auto = st.toggle("Auto-refresh live P/L (30s)", value=True)
+
 # --- News banner + always-visible upcoming list ---
 try:
+    if _auto:
+        try:
+            from streamlit_autorefresh import st_autorefresh
+            st_autorefresh(interval=30 * 1000, key="pl30")
+        except Exception:
+            pass
     from src.news import status as _news_status, load_events as _load_events
     _ns = _news_status()
     if _ns.get("blocked"):
