@@ -139,7 +139,7 @@ try:
                 break
         if _rows:
             _why = "".join(f"<div>• {w}</div>" for w in _b.get("why", []))
-            for _t, _e, _when in sorted(_rows):
+            for _t, _e, _when in sorted(_rows, key=lambda r: r[0]):
                 _star = "⭐ " if _e.get("key") else ""
                 st.markdown(f"""
 <div class="card" style="margin:8px 0">
@@ -151,13 +151,13 @@ try:
   <div class="reasonbox">fcst <b>{_e.get('forecast') or '—'}</b> • prev <b>{_e.get('previous') or '—'}</b><br>{_why}</div>
   <div class="sent">Signals pause ±30 min around release • bias is positioning, not a prediction</div>
 </div>""", unsafe_allow_html=True)
-            for _t, _e, _when in sorted(_past)[-3:]:
+            for _t, _e, _when in sorted(_past, key=lambda r: r[0])[-3:]:
                 st.caption(f"{_e['title']} ✅ {_t:%a %H:%M} ({_when})")
         else:
             if _past:
                 st.markdown(
                     "No upcoming events — week done. Recent: " +
-                    ", ".join(f"{_e['title']} ✅ ({_w})" for _, _e, _w in sorted(_past)[-3:]))
+                    ", ".join(f"{_e['title']} ✅ ({_w})" for _, _e, _w in sorted(_past, key=lambda r: r[0])[-3:]))
             else:
                 st.write("No events cached. Tap ↻ Refresh (Sunday rotation / network).")
 except Exception as _outer_e:
