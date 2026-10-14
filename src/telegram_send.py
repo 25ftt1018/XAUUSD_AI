@@ -4,16 +4,16 @@ import requests
 
 
 def _creds():
-    token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
-    chat = os.environ.get("TELEGRAM_CHAT_ID", "")
+    token = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip().strip('"').strip("'")
+    chat = os.environ.get("TELEGRAM_CHAT_ID", "").strip().strip('"').strip("'")
     if not token or not chat:
         try:
             import streamlit as st
-            token = token or str(st.secrets.get("TELEGRAM_BOT_TOKEN", ""))
-            chat = chat or str(st.secrets.get("TELEGRAM_CHAT_ID", ""))
+            token = token or str(st.secrets.get("TELEGRAM_BOT_TOKEN", "")).strip()
+            chat = chat or str(st.secrets.get("TELEGRAM_CHAT_ID", "")).strip()
         except Exception:
             pass
-    return token, chat
+    return token.strip(), chat.strip()
 
 
 def send(text: str) -> bool:
@@ -22,9 +22,11 @@ def send(text: str) -> bool:
         print("Telegram not configured. Set TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID.")
         print(text)
         return False
+    if len(token) not in (45, 46, 47):
+        print(f"Warning: token length {len(token)} looks off (expect ~46). Trimmed hidden chars.")
     r = requests.post(f"https://api.telegram.org/bot{token}/sendMessage",
-                      json={"chat_id": chat, "text": text, "parse_mode": "Markdown"}, timeout=15)
-    print(r.status_code, r.text[:200])
+                      json={"chat_id": chat, "text": text}, timeout=15)
+    print(r.status_code, r.text[:300])
     return r.ok
 
 
