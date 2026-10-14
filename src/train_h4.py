@@ -21,7 +21,7 @@ def train_h4() -> dict:
     model = lgb.LGBMClassifier(
         n_estimators=300, learning_rate=0.04, num_leaves=31,
         min_child_samples=60, reg_alpha=0.1, reg_lambda=1.0,
-        class_weight="balanced", verbose=-1)
+        class_weight="balanced", random_state=42, deterministic=True, verbose=-1)
     model.fit(Xtr, ytr)
     print(classification_report(yte, model.predict(Xte), target_names=["SELL", "BUY"]))
     joblib.dump({"model": model, "features": FEATURE_COLS, "version": "h4-v1"}, MODEL_H4)

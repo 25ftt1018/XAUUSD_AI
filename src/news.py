@@ -27,10 +27,15 @@ KEYWORDS = ("CPI", "NFP", "Non-Farm", "FOMC", "Fed ", "Powell", "PPI",
 
 
 def _parse_time(date_s: str, time_s: str) -> datetime | None:
-    """FF dates like 10-14-2026 + 8:30am (ET). Return UTC-aware."""
+    """FF dates like 10-14-2026 + 8:30am (ET). Return UTC-aware via real ET rules."""
     try:
+        from zoneinfo import ZoneInfo
         dt = datetime.strptime(f"{date_s} {time_s}", "%m-%d-%Y %I:%M%p")
-        # FF times are ET; Oct = EDT (UTC-4)
+        return dt.replace(tzinfo=ZoneInfo("America/New_York")).astimezone(timezone.utc)
+    except Exception:
+        pass
+    try:  # fallback: EDT assumption
+        dt = datetime.strptime(f"{date_s} {time_s}", "%m-%d-%Y %I:%M%p")
         return (dt + timedelta(hours=4)).replace(tzinfo=timezone.utc)
     except Exception:
         return None

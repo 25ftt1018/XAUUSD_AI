@@ -11,7 +11,9 @@ def _h4():
         return get_signal_h4()
     except Exception as e:
         print(f"H4 skipped: {e}")
-        return {"side": "WAIT"}
+        return {"side": "WAIT", "confidence": 0.0, "price": 0.0, "sl": None,
+                "tp1": None, "tp2": None, "tp3": None, "reason": "H4 unavailable",
+                "reasons": [], "time": "-", "screener": {}}
 
 
 if __name__ == "__main__":

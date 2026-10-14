@@ -15,7 +15,7 @@ def get_signal_h4() -> dict:
     from src.features import add_features
     raw = pd.read_csv(H4_PATH, index_col=0, parse_dates=True)
     df = add_features(raw)
-    last = df.iloc[[-1]]
+    last = df.iloc[[-1]].copy()
     for c in feats:
         if c not in last.columns:
             last[c] = 0.0

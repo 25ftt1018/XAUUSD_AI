@@ -41,11 +41,26 @@ def load_dxy() -> pd.DataFrame | None:
 
 def resample_h4(h1: pd.DataFrame) -> pd.DataFrame:
     agg = {"open": "first", "high": "max", "low": "min", "close": "last", "volume": "sum"}
-    return h1.resample("4h").agg(agg).dropna()
+    h4 = h1.resample("4h").agg(agg).dropna()
+    # Drop forming bar: signal must use last CLOSED candle (no repaint)
+    try:
+        from datetime import datetime, timezone
+        if not h4.empty and h4.index[-1] + pd.Timedelta(hours=4) > datetime.now(timezone.utc):
+            h4 = h4.iloc[:-1]
+    except Exception:
+        pass
+    return h4
 
 
 def update_all() -> None:
     h1 = fetch_yahoo(GOLD_SYMBOL, "60m", "2y")
+    # Drop forming H1 bar: entry uses last CLOSED candle (no repaint)
+    try:
+        from datetime import datetime, timezone
+        if not h1.empty and (datetime.now(timezone.utc) - h1.index[-1]).total_seconds() < 3600:
+            h1 = h1.iloc[:-1]
+    except Exception:
+        pass
     h1.to_csv(DATA_H1_PATH)
     print(f"H1 rows: {len(h1)} -> {DATA_H1_PATH} | last: {h1.index[-1]} close={h1['close'].iloc[-1]:.2f}")
     h4 = resample_h4(h1)

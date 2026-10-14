@@ -26,7 +26,10 @@ def send(text: str) -> bool:
         print(f"Warning: token length {len(token)} looks off (expect ~46). Trimmed hidden chars.")
     r = requests.post(f"https://api.telegram.org/bot{token}/sendMessage",
                       json={"chat_id": chat, "text": text}, timeout=15)
-    print(r.status_code, r.text[:300])
+    try:
+        print(r.status_code, r.text[:300])
+    except UnicodeEncodeError:
+        print(r.status_code, r.text[:300].encode("ascii", "replace").decode())
     return r.ok
 
 

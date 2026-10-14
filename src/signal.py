@@ -60,7 +60,7 @@ def get_signal() -> dict:
     from src.data_fetch import load_dxy
     raw = pd.read_csv(DATA_H1_PATH, index_col=0, parse_dates=True)
     df = add_features(raw, load_dxy())
-    last = df.iloc[[-1]]
+    last = df.iloc[[-1]].copy()
     for c in feats:
         if c not in last.columns:
             last[c] = 0.0
