@@ -53,9 +53,13 @@ def current_bias() -> dict:
     except Exception:
         pass
     if votes >= 2:
-        label, action = "Bullish", "BUY"
+        label, action = ("Bullish (confirmed)", "BUY") if votes >= 3 else ("Bullish (weak)", "BUY")
     elif votes <= -2:
-        label, action = "Bearish", "SELL"
+        label, action = ("Bearish (confirmed)", "SELL") if votes <= -3 else ("Bearish (weak)", "SELL")
+    elif votes == 1:
+        label, action = "Bullish (weak)", "BUY"
+    elif votes == -1:
+        label, action = "Bearish (weak)", "SELL"
     else:
         label, action = "Neutral", "WAIT"
     return {"label": label, "action": action, "votes": votes, "why": why}
