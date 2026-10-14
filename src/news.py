@@ -59,7 +59,7 @@ def update_calendar() -> list[dict]:
             "key": any(k.lower() in title.lower() for k in KEYWORDS),
         })
     events.sort(key=lambda e: e["time_utc"])
-    CACHE.write_text(json.dumps({"updated": datetime.now(timezone.utc).isoformat(), "events": events}))
+    CACHE.write_text(json.dumps({"v": 2, "updated": datetime.now(timezone.utc).isoformat(), "events": events}))
     print(f"News: {len(events)} high-impact USD events cached")
     return events
 
@@ -78,6 +78,8 @@ def load_events(max_age_h: int = 24 * 7) -> list[dict]:
     global _LAST_SOURCE
     try:
         cache = json.loads(CACHE.read_text())
+        if cache.get("v") != 2:
+            raise ValueError("stale calendar schema")
         age = datetime.now(timezone.utc) - datetime.fromisoformat(cache["updated"])
         if age < timedelta(hours=max_age_h):
             _LAST_SOURCE = f"cache ({int(age.total_seconds() // 3600)}h old)"
