@@ -95,6 +95,15 @@ try:
             if m < 1440:
                 return f"{pre}{int(m // 60)}h {int(m % 60):02d}m {suf}".strip()
             return f"{pre}{int(m // 1440)}d {int((m % 1440) // 60)}h {suf}".strip()
+        _c1, _c2 = st.columns([3, 1])
+        with _c2:
+            if st.button("↻ Refresh", key="newsref"):
+                try:
+                    from src.news import update_calendar as _upd
+                    _upd()
+                    st.rerun()
+                except Exception as _e:
+                    st.warning(f"Refresh failed: {_e}")
         try:
             from src.news_bias import current_bias as _bias
             _b = _bias()
@@ -105,13 +114,15 @@ try:
             _b, _b_txt, _pill = {"why": []}, "n/a", "neu"
         st.caption(f"Positioning bias, not a prediction: **{_b_txt}** — {', '.join(_b.get('why', []))}")
         _now = datetime.now(timezone.utc)
-        _rows = []
+        _rows, _past = [], []
         for _e in _load_events():
             _t = datetime.fromisoformat(_e["time_utc"])
-            if _t > _now - timedelta(minutes=30):
-                _mins = (_t - _now).total_seconds() / 60
+            _mins = (_t - _now).total_seconds() / 60
+            if _mins >= -30:
                 _rows.append((_t, _e, _dur(_mins)))
-            if len(_rows) >= 5:
+            elif _mins >= -24 * 60:
+                _past.append((_t, _e, _dur(_mins)))
+            if len(_rows) >= 5 and len(_past) >= 3:
                 break
         if _rows:
             _tbl = ['<table class="newstable"><tr><th>Event</th><th>Time</th><th>Bias</th></tr>']
@@ -123,6 +134,11 @@ try:
                     f'<tr class="{_cls}"><td>{_star}{_e["title"]}</td>'
                     f'<td>{_t:%a %H:%M}<br><span style="color:#888">{_when}</span></td>'
                     f'<td><span class="{_pill}">{_b_txt}</span></td></tr>')
+            for _t, _e, _when in sorted(_past)[-3:]:
+                _tbl.append(
+                    f'<tr style="opacity:.55"><td>{_e["title"]} ✅</td>'
+                    f'<td>{_t:%a %H:%M}<br><span style="color:#888">{_when}</span></td>'
+                    f'<td><span class="neu">DONE</span></td></tr>')
             _tbl.append("</table>")
             st.markdown("".join(_tbl), unsafe_allow_html=True)
             _labels = [f"{'⭐ ' if _e.get('key') else ''}{_e['title']} — {_t:%a %H:%M}" for _t, _e, _ in _srows]
@@ -140,7 +156,12 @@ try:
   <div class="sent">Signals pause ±30 min around release • bias is positioning, not a prediction</div>
 </div>""", unsafe_allow_html=True)
         else:
-            st.write("No upcoming events cached.")
+            if _past:
+                st.markdown(
+                    "No upcoming events — week done. Recent: " +
+                    ", ".join(f"{_e['title']} ✅ ({_w})" for _, _e, _w in sorted(_past)[-3:]))
+            else:
+                st.write("No events cached. Tap ↻ Refresh (Sunday rotation / network).")
 except Exception:
     pass
 
