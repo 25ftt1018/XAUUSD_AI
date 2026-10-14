@@ -10,33 +10,49 @@ CSS = """
 body { background:#070b16; }
 .card { background:linear-gradient(180deg,#0d1426,#0a0f1f); border:1px solid #1de9b6aa;
   border-radius:18px; padding:16px; box-shadow:0 0 24px #1de9b633; }
+.card.buy { border-color:#1de9b6; box-shadow:0 0 32px #1de9b655; }
+.card.sell { border-color:#ff6b6b; box-shadow:0 0 32px #ff6b6b55; }
+.card.wait { border-color:#444; box-shadow:none; }
 .pill { display:inline-block; padding:3px 12px; border-radius:999px; font-size:12px; font-weight:700; }
 .pill-ai { background:#7c5cff33; color:#b9a7ff; border:1px solid #7c5cff88; }
 .pill-live { background:#0a2e22; color:#1de9b6; border:1px solid #1de9b655; }
-.side-buy { background:#0d3b2e; color:#1de9b6; border:2px solid #1de9b6; border-radius:10px;
-  padding:6px 18px; font-weight:800; }
-.side-sell { background:#3b0d0d; color:#ff6b6b; border:2px solid #ff6b6b; border-radius:10px;
-  padding:6px 18px; font-weight:800; }
-.side-wait { background:#222; color:#aaa; border:2px solid #555; border-radius:10px;
-  padding:6px 18px; font-weight:800; }
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.55; } }
+.pulse { animation:pulse 1.6s infinite; }
+.side-buy { background:#00e676; color:#04140c; border:2px solid #00e676; border-radius:10px;
+  padding:8px 22px; font-weight:900; font-size:17px; }
+.side-sell { background:#ff5252; color:#1c0404; border:2px solid #ff5252; border-radius:10px;
+  padding:8px 22px; font-weight:900; font-size:17px; }
+.side-wait { background:#1c1c1c; color:#777; border:2px dashed #555; border-radius:10px;
+  padding:8px 22px; font-weight:800; font-size:15px; }
 .status { background:#0e2a22; border:1px solid #1de9b655; color:#1de9b6; border-radius:10px;
   padding:8px 12px; font-weight:700; text-align:center; margin:10px 0; }
-.status.wait { background:#1a1a1a; color:#999; border-color:#444; }
+.status.wait { background:#141414; color:#888; border-style:dashed; border-color:#444; }
 .reasonbox { background:#141b3d; border-left:4px solid #7c5cff; border-radius:8px;
   padding:10px 12px; font-size:13px; color:#dfe3ff; margin:8px 0; }
 .entry { background:#0a2540; border:1px solid #2f81f7aa; border-radius:12px; text-align:center;
-  padding:10px; margin:8px 0; }
+  padding:12px; margin:8px 0; }
 .entry .lbl { font-size:11px; letter-spacing:2px; color:#9fb3d9; }
-.entry .val { font-size:34px; font-weight:800; color:#fff; }
+.entry .val { font-size:44px; font-weight:900; color:#fff; line-height:1.1; }
 .grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:8px 0; }
-.cell { border-radius:10px; padding:8px; text-align:center; }
-.cell .lbl { font-size:10px; letter-spacing:1px; opacity:.8; }
-.cell .val { font-size:17px; font-weight:800; }
+.cell { border-radius:10px; padding:10px 8px; text-align:center; }
+.cell .lbl { font-size:10px; letter-spacing:1px; opacity:.85; }
+.cell .val { font-size:19px; font-weight:800; }
+.cell .r { font-size:10px; opacity:.7; }
 .cell.sl { background:#2a1440; border:1px solid #7c5cff88; color:#d9c8ff; }
 .cell.tp { background:#0d2b26; border:1px solid #1de9b666; color:#b8ffe9; }
+.cell.off { background:#151515; border:1px dashed #444; color:#666; }
 .screener { background:#0a0f1f; border:1px solid #ffffff22; border-radius:10px;
   padding:8px 12px; font-size:12px; color:#cbd5e1; }
 .sent { font-size:11px; color:#888; margin-top:8px; }
+.newstable { width:100%; border-collapse:collapse; font-size:13px; }
+.newstable td, .newstable th { padding:7px 6px; border-bottom:1px solid #ffffff14; text-align:left; }
+.newstable tr.key td { background:#ffd54d11; }
+.bull { background:#00e67622; color:#00e676; border:1px solid #00e67688; border-radius:6px;
+  padding:1px 8px; font-weight:800; white-space:nowrap; }
+.bear { background:#ff525222; color:#ff8a80; border:1px solid #ff525288; border-radius:6px;
+  padding:1px 8px; font-weight:800; white-space:nowrap; }
+.neu { background:#ffffff11; color:#aaa; border:1px solid #555; border-radius:6px;
+  padding:1px 8px; font-weight:800; white-space:nowrap; }
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
@@ -73,23 +89,32 @@ try:
         try:
             from src.news_bias import current_bias as _bias
             _b = _bias()
-            _b_txt = f"{_b['label']} [{_b['action']}]"
+            _act = _b.get("action", "WAIT")
+            _pill = "bull" if _act == "BUY" else "bear" if _act == "SELL" else "neu"
+            _b_txt = f"{_b['label']} [{_act}]"
         except Exception:
-            _b, _b_txt = {"why": []}, "n/a"
-        st.caption(f"Positioning bias (not a prediction): **{_b_txt}** — {', '.join(_b.get('why', []))}")
+            _b, _b_txt, _pill = {"why": []}, "n/a", "neu"
+        st.caption(f"Positioning bias, not a prediction: **{_b_txt}** — {', '.join(_b.get('why', []))}")
         _now = datetime.now(timezone.utc)
         _rows = []
         for _e in _load_events():
             _t = datetime.fromisoformat(_e["time_utc"])
             if _t > _now - timedelta(minutes=30):
                 _mins = (_t - _now).total_seconds() / 60
-                _when = _dur(_mins)
-                _rows.append((_t, f"{'⭐' if _e.get('key') else '•'} {_e['title']} — {_t:%a %H:%M} UTC ({_when}) → **{_b_txt}**"))
+                _rows.append((_t, _e, _dur(_mins)))
             if len(_rows) >= 5:
                 break
         if _rows:
-            for _, _line in sorted(_rows):
-                st.write(_line)
+            _tbl = ['<table class="newstable"><tr><th>Event</th><th>Time</th><th>Bias</th></tr>']
+            for _t, _e, _when in sorted(_rows):
+                _star = "⭐ " if _e.get("key") else ""
+                _cls = "key" if _e.get("key") else ""
+                _tbl.append(
+                    f'<tr class="{_cls}"><td>{_star}{_e["title"]}</td>'
+                    f'<td>{_t:%a %H:%M}<br><span style="color:#888">{_when}</span></td>'
+                    f'<td><span class="{_pill}">{_b_txt}</span></td></tr>')
+            _tbl.append("</table>")
+            st.markdown("".join(_tbl), unsafe_allow_html=True)
         else:
             st.write("No upcoming events cached.")
 except Exception:
@@ -110,36 +135,54 @@ try:
         from src.signal import get_signal as _get
     s = _get()
     side = s["side"]
+    card_cls = "buy" if side == "BUY" else "sell" if side == "SELL" else "wait"
     side_cls = "side-buy" if side == "BUY" else "side-sell" if side == "SELL" else "side-wait"
+    side_txt = ("↗ BUY" if side == "BUY" else "↘ SELL" if side == "SELL" else "⏸ NO TRADE")
     screener = s.get("screener", {})
     scr_html = " • ".join(f"{k}: <b>{v}</b>" for k, v in screener.items())
     reasons_html = "".join(f"<div>• {r}</div>" for r in s.get("reasons", []))
 
+    # Live running pips vs spot (fresh signals start ~0, drift live)
+    try:
+        from src.data_fetch import live_spot
+        _spot = live_spot() or s["price"]
+        _d = 1 if side == "BUY" else -1 if side == "SELL" else 0
+        _run = (_spot - s["price"]) / 0.1 * _d
+    except Exception:
+        _run = s.get("running_pips", 0) or 0
+
     if side == "WAIT":
-        status_html = f'<div class="status wait">WAIT — {s.get("reason","")} • {s["confidence"]}%</div>'
+        status_html = f'<div class="status wait">NO TRADE — {s.get("reason","")} • {s["confidence"]}%</div>'
+        live_txt = ""
     else:
-        status_html = (f'<div class="status">RUNNING {s["running_pips"]:+.0f} pip '
-                       f'<span style="float:right">peak +{s["peak_pips"]:.0f}</span></div>')
+        status_html = (f'<div class="status pulse">RUNNING {_run:+.0f} pip '
+                       f'<span style="float:right">peak +{s.get("peak_pips",0):.0f}</span></div>')
+        live_txt = f'<span class="pill pill-live">live {_run:+.0f} pip</span>'
+
+    _cell = lambda lbl, val, cls, r="": (
+        f'<div class="cell {cls}"><div class="lbl">{lbl}</div><div class="val">{val or "—"}</div>'
+        f'<div class="r">{r}</div></div>')
+    _off = "off" if side == "WAIT" else ""
 
     st.markdown(f"""
-<div class="card">
+<div class="card {card_cls}">
   <div>🔥 <b>XAUUSD</b> <span style="font-size:11px;color:#888">MT5 BROKER FEED</span></div>
   <div style="margin:6px 0"><span class="pill pill-ai">3RD EYES • AI</span>
-    <span class="pill pill-live" style="float:right">● Signal Running</span></div>
+    <span class="pill pill-live pulse" style="float:right">● Signal Running</span></div>
   <div style="display:flex;justify-content:space-between;align-items:center;margin:8px 0">
     <div><b style="font-size:22px">XAUUSD</b>
-      <span class="pill pill-ai">Analysis {s["confidence"]}%</span></div>
-    <div class="{side_cls}">{'↗' if side=='BUY' else '↘' if side=='SELL' else '⏸'} {side}</div>
+      <span class="pill pill-ai">Analysis {s["confidence"]}%</span> {live_txt}</div>
+    <div class="{side_cls}">{side_txt}</div>
   </div>
   {status_html}
   <div style="font-size:11px;color:#8b93b8;letter-spacing:1px">SIGNAL REASON</div>
   <div class="reasonbox">{reasons_html}</div>
   <div class="entry"><div class="lbl">ENTRY</div><div class="val">{s["price"]:,.2f}</div></div>
   <div class="grid">
-    <div class="cell sl"><div class="lbl">STOP LOSS (SL)</div><div class="val">{s["sl"] or "—"}</div></div>
-    <div class="cell tp"><div class="lbl">TP 1 ✓</div><div class="val">{s["tp1"] or "—"}</div></div>
-    <div class="cell tp"><div class="lbl">TP 2</div><div class="val">{s["tp2"] or "—"}</div></div>
-    <div class="cell tp"><div class="lbl">TP 3</div><div class="val">{s.get("tp3") or "—"}</div></div>
+    {_cell("STOP LOSS (SL)", f'{s["sl"]:,.2f}' if s["sl"] else None, "sl " + _off)}
+    {_cell("TP 1 ✓", f'{s["tp1"]:,.2f}' if s["tp1"] else None, "tp " + _off, "+1R")}
+    {_cell("TP 2", f'{s["tp2"]:,.2f}' if s["tp2"] else None, "tp " + _off, "+2R")}
+    {_cell("TP 3", f'{s.get("tp3"):,.2f}' if s.get("tp3") else None, "tp " + _off, "+3R")}
   </div>
   <div class="screener">🪙 XAUUSD SCREENER<br>{scr_html}</div>
   <div class="sent">● SENT: {s["time"]}</div>
