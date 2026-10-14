@@ -17,12 +17,14 @@ def atr(df: pd.DataFrame, n: int = 14) -> pd.Series:
     return tr.ewm(alpha=1 / n, adjust=False).mean()
 
 
-def add_features(df: pd.DataFrame) -> pd.DataFrame:
+def add_features(df: pd.DataFrame, dxy: pd.DataFrame | None = None) -> pd.DataFrame:
     df = df.copy()
     c = df["close"]
     df["ema20"] = c.ewm(span=20).mean()
     df["ema50"] = c.ewm(span=50).mean()
     df["ema_dist"] = (c - df["ema20"]) / df["ema20"] * 100
+    df["ema50_dist"] = (c - df["ema50"]) / df["ema50"] * 100
+    df["trend"] = (c > df["ema50"]).astype(int) * 2 - 1  # +1 up, -1 down
     df["rsi14"] = rsi(c)
     ema12 = c.ewm(span=12).mean()
     ema26 = c.ewm(span=26).mean()
@@ -42,12 +44,19 @@ def add_features(df: pd.DataFrame) -> pd.DataFrame:
     # London (7-10 UTC) / NY (12-16 UTC) killzones
     df["is_london"] = ((idx.hour >= 7) & (idx.hour <= 10)).astype(int)
     df["is_ny"] = ((idx.hour >= 12) & (idx.hour <= 16)).astype(int)
+    df["in_session"] = ((df["is_london"] == 1) | (df["is_ny"] == 1)).astype(int)
+    if dxy is not None and len(dxy):
+        d = dxy["close"].reindex(df.index, method="ffill")
+        df["dxy_ret_3"] = d.pct_change(3) * 100
+        df["dxy_ret_3"] = df["dxy_ret_3"].fillna(0)
+    elif "dxy_ret_3" not in df.columns:
+        df["dxy_ret_3"] = 0.0
     return df.dropna()
 
 
 FEATURE_COLS = [
-    "ema_dist", "rsi14", "macd", "macd_sig", "atr_pct", "bb_pos",
-    "ret_1", "ret_3", "ret_5", "vol_chg", "hour", "dow", "is_london", "is_ny",
+    "ema_dist", "ema50_dist", "trend", "rsi14", "macd", "macd_sig", "atr_pct", "bb_pos",
+    "ret_1", "ret_3", "ret_5", "vol_chg", "hour", "dow", "is_london", "is_ny", "dxy_ret_3",
 ]
 
 
