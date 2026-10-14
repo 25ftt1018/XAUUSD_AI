@@ -243,7 +243,7 @@ try:
     <span class="pill pill-live pulse" style="float:right">● Signal Running</span></div>
   <div style="display:flex;justify-content:space-between;align-items:center;margin:8px 0">
     <div><b style="font-size:22px">XAUUSD</b>
-      <span class="pill pill-ai">Analysis {s["confidence"]}%</span> {live_txt}</div>
+      <span class="pill pill-ai">Analysis {s["confidence"]}% · hist ~{s.get("hist_conf", 50)}%</span> {live_txt}</div>
     <div class="{side_cls}">{side_txt}</div>
   </div>
   {status_html}

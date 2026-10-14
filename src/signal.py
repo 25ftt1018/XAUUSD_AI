@@ -135,9 +135,11 @@ def get_signal() -> dict:
         reasons.append("No momentum edge")
     reasons.append(f"RSI {rsi:.0f} • {'Above' if trend > 0 else 'Below'} EMA50")
     reasons.append(reason)
+    from src.calibration import hist_conf
+    hc = round(hist_conf(conf), 1)
 
     return {
-        "side": side, "confidence": round(conf * 100, 1), "price": round(price, 2),
+        "side": side, "confidence": round(conf * 100, 1), "hist_conf": hc, "price": round(price, 2),
         "sl": round(sl, 2) if sl else None, "tp1": round(tp1, 2) if tp1 else None,
         "tp2": round(tp2, 2) if tp2 else None, "tp3": round(tp3, 2) if tp3 else None,
         "atr": round(atr, 2), "time": str(df.index[-1]), "reason": reason,

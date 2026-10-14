@@ -46,5 +46,5 @@ def format_signal(s: dict) -> str:
     icon = "🟢" if s["side"] == "BUY" else "🔴"
     reasons = "\n".join(f"• {r}" for r in s.get("reasons", []))
     return (f"{icon} XAUUSD {s['side']} @ {s['price']}\n"
-            f"Confidence: {s['confidence']}%\nSL: {s['sl']} | TP1: {s['tp1']} | TP2: {s['tp2']} | TP3: {s.get('tp3')}\n"
+            f"Model: {s['confidence']}% (hist ~{s.get('hist_conf', 50)}%)\nSL: {s['sl']} | TP1: {s['tp1']} | TP2: {s['tp2']} | TP3: {s.get('tp3')}\n"
             f"{reasons}\n{s['time']}")
