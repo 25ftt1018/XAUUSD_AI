@@ -160,6 +160,16 @@ try:
                     ", ".join(f"{_e['title']} ✅ ({_w})" for _, _e, _w in sorted(_past, key=lambda r: r[0])[-3:]))
             else:
                 st.write("No events cached. Tap ↻ Refresh (Sunday rotation / network).")
+        try:
+            from src.news import scheduled_future as _sched
+            _fut = [e for e in _sched()]
+            if _fut:
+                st.caption("Scheduled ahead (provisional dates, no blackout until confirmed):")
+                for _e in _fut[:4]:
+                    _t = datetime.fromisoformat(_e["time_utc"])
+                    st.write(f"📅 {_e['title']} — {_t:%a %b %d %H:%M} UTC")
+        except Exception:
+            pass
 except Exception as _outer_e:
     st.warning(f"News section error: {_outer_e}")
 

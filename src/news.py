@@ -119,3 +119,32 @@ def status(now: datetime | None = None, pre_min: int = 30, post_min: int = 30) -
     return {"blocked": blocked_title is not None, "title": blocked_title,
             "mins_to": round(mins, 0) if mins is not None else None,
             "next": nxt}
+
+
+# --- Provisional scheduled calendar (display only, never blocks signals) ---
+# NFP ≈ first Friday monthly 12:30 UTC; FOMC decisions per published Fed schedule.
+# Dates can shift (shutdowns, reschedules) — tagged provisional until weekly XML confirms.
+FOMC_DECISIONS_2026 = ["2026-10-28", "2026-12-09"]
+
+
+def scheduled_future(now: datetime | None = None, months: int = 3) -> list[dict]:
+    now = now or datetime.now(timezone.utc)
+    out = []
+    y, m = now.year, now.month
+    for _ in range(months):
+        first = datetime(y, m, 1, tzinfo=timezone.utc)
+        # first Friday: weekday() Mon=0..Fri=4
+        nfp = first + timedelta(days=(4 - first.weekday()) % 7)
+        t = nfp.replace(hour=12, minute=30)
+        if t > now:
+            out.append({"title": "NFP / Non-Farm Payrolls", "time_utc": t.isoformat(),
+                        "forecast": "", "previous": "", "key": True, "provisional": True})
+        m += 1
+        if m > 12:
+            m, y = 1, y + 1
+    for d in FOMC_DECISIONS_2026:
+        t = datetime.strptime(d, "%Y-%m-%d").replace(hour=18, minute=0, tzinfo=timezone.utc)
+        if t > now:
+            out.append({"title": "FOMC Rate Decision", "time_utc": t.isoformat(),
+                        "forecast": "", "previous": "", "key": True, "provisional": True})
+    return sorted(out, key=lambda e: e["time_utc"])
