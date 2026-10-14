@@ -57,7 +57,15 @@ def update_calendar() -> list[dict]:
     return events
 
 
-def load_events(max_age_h: int = 48) -> list[dict]:
+def _fallback() -> list[dict]:
+    try:
+        fb = json.loads((Path(__file__).parent / "news_fallback.json").read_text())
+        return fb["events"]
+    except Exception:
+        return []
+
+
+def load_events(max_age_h: int = 24 * 7) -> list[dict]:
     try:
         cache = json.loads(CACHE.read_text())
         age = datetime.now(timezone.utc) - datetime.fromisoformat(cache["updated"])
@@ -68,11 +76,14 @@ def load_events(max_age_h: int = 48) -> list[dict]:
     try:
         return update_calendar()
     except Exception as e:
-        print(f"News fetch failed (non-fatal): {e}")
+        print(f"News fetch failed (non-fatal, using fallback): {e}")
         try:
-            return json.loads(CACHE.read_text())["events"]
+            evs = json.loads(CACHE.read_text())["events"]
+            if evs:
+                return evs
         except Exception:
-            return []
+            pass
+        return _fallback()
 
 
 def status(now: datetime | None = None, pre_min: int = 30, post_min: int = 30) -> dict:
