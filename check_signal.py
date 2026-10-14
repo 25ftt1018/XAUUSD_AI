@@ -1,8 +1,9 @@
-"""Cron job: refresh data -> H1 + H4 signals -> telegram."""
+"""Cron job: refresh data -> H1 + H4 signals -> telegram + scoreboard log."""
 import argparse
 from src.bootstrap import ensure_ready
 from src.signal import get_signal
 from src.telegram_send import send, format_signal
+from src.scoreboard import log_signal
 
 
 def _h4():
@@ -30,6 +31,8 @@ if __name__ == "__main__":
     for sig, tag in ((h4, "H4 SWING"), (s, "H1")):
         if sig["side"] != "WAIT" or args.force:
             msg = format_signal(sig).replace("XAUUSD", f"XAUUSD [{tag}]", 1)
+            if sig["side"] != "WAIT":
+                log_signal(sig, tag)
             send(msg)
     if s["side"] == "WAIT" and h4["side"] == "WAIT" and not args.force:
         print("WAIT -> no push (avoids spam)")

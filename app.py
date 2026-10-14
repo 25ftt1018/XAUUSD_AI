@@ -295,4 +295,22 @@ if h1_path.exists():
     st.altair_chart(chart, use_container_width=True)
 
 st.divider()
+st.subheader("📒 Paper scoreboard")
+try:
+    from src.scoreboard import mark_outcomes, summary
+    _log = mark_outcomes()
+    if _log is not None and not _log.empty:
+        _sum = summary(_log)
+        _c1, _c2, _c3, _c4 = st.columns(4)
+        _c1.metric("Signals", _sum["total"])
+        _c2.metric("TP1 / SL", f"{_sum['tp1']} / {_sum['sl']}")
+        _c3.metric("Winrate", f"{_sum['winrate']}%")
+        _c4.metric("Net pips", f"{_sum['net_pips']:+.0f}")
+        st.dataframe(_log[["time", "tf", "side", "entry", "sl", "tp1",
+                            "conf", "hist_conf", "outcome", "pips"]].tail(20),
+                     use_container_width=True)
+    else:
+        st.caption("No paper signals logged yet - first BUY/SELL will appear here with auto-marked TP1/SL.")
+except Exception as _e:
+    st.caption(f"Scoreboard unavailable: {_e}")
 st.caption("Telegram bot sends push alerts. Website = detail view.")
