@@ -106,7 +106,8 @@ try:
                 break
         if _rows:
             _tbl = ['<table class="newstable"><tr><th>Event</th><th>Time</th><th>Bias</th></tr>']
-            for _t, _e, _when in sorted(_rows):
+            _srows = sorted(_rows)
+            for _t, _e, _when in _srows:
                 _star = "⭐ " if _e.get("key") else ""
                 _cls = "key" if _e.get("key") else ""
                 _tbl.append(
@@ -115,6 +116,20 @@ try:
                     f'<td><span class="{_pill}">{_b_txt}</span></td></tr>')
             _tbl.append("</table>")
             st.markdown("".join(_tbl), unsafe_allow_html=True)
+            _labels = [f"{'⭐ ' if _e.get('key') else ''}{_e['title']} — {_t:%a %H:%M}" for _t, _e, _ in _srows]
+            _pick = st.selectbox("Select event for details", _labels, index=0)
+            _t, _e, _when = _srows[_labels.index(_pick)]
+            _why = "".join(f"<div>• {w}</div>" for w in _b.get("why", []))
+            st.markdown(f"""
+<div class="card" style="margin-top:8px">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <div><b>{'⭐ ' if _e.get('key') else ''}{_e['title']}</b></div>
+    <div><span class="{_pill}">{_b_txt}</span></div>
+  </div>
+  <div style="font-size:12px;color:#9fb3d9;margin:6px 0">🕐 {_t:%A %H:%M} UTC ({_when})</div>
+  <div class="reasonbox">fcst <b>{_e.get('forecast') or '—'}</b> • prev <b>{_e.get('previous') or '—'}</b><br>{_why}</div>
+  <div class="sent">Signals pause ±30 min around release • bias is positioning, not a prediction</div>
+</div>""", unsafe_allow_html=True)
         else:
             st.write("No upcoming events cached.")
 except Exception:
