@@ -16,11 +16,18 @@ def _creds():
     return token.strip(), chat.strip()
 
 
+def _safe_print(*a):
+    try:
+        print(*a)
+    except UnicodeEncodeError:
+        print(*[str(x).encode("ascii", "replace").decode() for x in a])
+
+
 def send(text: str) -> bool:
     token, chat = _creds()
     if not token or not chat:
-        print("Telegram not configured. Set TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID.")
-        print(text)
+        _safe_print("Telegram not configured. Set TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID.")
+        _safe_print(text)
         return False
     if len(token) not in (45, 46, 47):
         print(f"Warning: token length {len(token)} looks off (expect ~46). Trimmed hidden chars.")
@@ -29,7 +36,7 @@ def send(text: str) -> bool:
     try:
         print(r.status_code, r.text[:300])
     except UnicodeEncodeError:
-        print(r.status_code, r.text[:300].encode("ascii", "replace").decode())
+        _safe_print(r.status_code, r.text[:300])
     return r.ok
 
 
