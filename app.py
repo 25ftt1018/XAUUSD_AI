@@ -43,9 +43,9 @@ st.markdown(CSS, unsafe_allow_html=True)
 st.markdown("<h2 style='text-align:center'>🪙 XAUUSD AI Signals</h2>", unsafe_allow_html=True)
 st.caption("Free Plan A • H1/M15 • Educational only, not financial advice.")
 
-# --- News banner ---
+# --- News banner + always-visible upcoming list ---
 try:
-    from src.news import status as _news_status
+    from src.news import status as _news_status, load_events as _load_events
     _ns = _news_status()
     if _ns.get("blocked"):
         st.warning(f"⚠️ {_ns['title']} ({_ns['mins_to']:+.0f} min) — new signals paused")
@@ -55,6 +55,23 @@ try:
         _mins = (_t - datetime.now(timezone.utc)).total_seconds() / 60
         if _mins < 240:
             st.info(f"📰 Next: {_ns['next']['title']} in {_mins:.0f} min (fcst {_ns['next'].get('forecast','—')})")
+    with st.expander("📰 Upcoming high-impact USD news", expanded=False):
+        from datetime import datetime, timezone, timedelta
+        _now = datetime.now(timezone.utc)
+        _rows = []
+        for _e in _load_events():
+            _t = datetime.fromisoformat(_e["time_utc"])
+            if _t > _now - timedelta(minutes=30):
+                _mins = (_t - _now).total_seconds() / 60
+                _when = f"in {_mins:.0f}m" if _mins >= 0 else f"{- _mins:.0f}m ago"
+                _rows.append((_t, f"{'⭐' if _e.get('key') else '•'} {_e['title']} — {_t:%a %H:%M} UTC ({_when})"))
+            if len(_rows) >= 5:
+                break
+        if _rows:
+            for _, _line in sorted(_rows):
+                st.write(_line)
+        else:
+            st.write("No upcoming events cached.")
 except Exception:
     pass
 
