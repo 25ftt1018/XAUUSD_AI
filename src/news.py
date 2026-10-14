@@ -27,16 +27,13 @@ KEYWORDS = ("CPI", "NFP", "Non-Farm", "FOMC", "Fed ", "Powell", "PPI",
 
 
 def _parse_time(date_s: str, time_s: str) -> datetime | None:
-    """FF dates like 10-14-2026 + 8:30am (ET). Return UTC-aware via real ET rules."""
+    """FF XML times are UTC wall-clock (verified: '12:30pm' = 12:30 UTC CPI release).
+
+    Earlier ET-assumption (+4h) was wrong and shifted every event 4h late.
+    """
     try:
-        from zoneinfo import ZoneInfo
         dt = datetime.strptime(f"{date_s} {time_s}", "%m-%d-%Y %I:%M%p")
-        return dt.replace(tzinfo=ZoneInfo("America/New_York")).astimezone(timezone.utc)
-    except Exception:
-        pass
-    try:  # fallback: EDT assumption
-        dt = datetime.strptime(f"{date_s} {time_s}", "%m-%d-%Y %I:%M%p")
-        return (dt + timedelta(hours=4)).replace(tzinfo=timezone.utc)
+        return dt.replace(tzinfo=timezone.utc)
     except Exception:
         return None
 
