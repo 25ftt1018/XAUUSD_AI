@@ -22,6 +22,9 @@ st.components.v1.html(
 # Latest signal
 st.subheader("Latest signal")
 try:
+    from src.bootstrap import ensure_ready
+    with st.spinner("First run: downloading data + training (1-2 min)..."):
+        ensure_ready()
     from src.signal import get_signal
     s = get_signal()
     color = "green" if s["side"] == "BUY" else "red" if s["side"] == "SELL" else "gray"
