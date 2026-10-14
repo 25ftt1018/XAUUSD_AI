@@ -48,6 +48,12 @@ def _screener() -> dict:
 
 
 def get_signal() -> dict:
+    # News blackout first (cheap, before model load)
+    try:
+        from src.news import status as news_status
+        ns = news_status()
+    except Exception:
+        ns = {"blocked": False}
     bundle = joblib.load(MODEL_PATH)
     model, feats = bundle["model"], bundle["features"]
     from src.features import add_features
@@ -96,6 +102,11 @@ def get_signal() -> dict:
         tp1, tp2, tp3 = price - sl_dist * TP1_R, price - sl_dist * TP2_R, price - sl_dist * TP3_R
     else:
         sl = tp1 = tp2 = tp3 = None
+
+    # News blackout overrides everything (can't predict CPI/FOMC/NFP direction)
+    if ns.get("blocked") and side != "WAIT":
+        side = "WAIT"
+        reason = f"⚠️ {ns['title']} ({ns['mins_to']:+.0f}min) — paused"
 
     # Running / peak pips from last 5 bars vs entry (fresh signal => ~0)
     try:

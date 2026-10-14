@@ -36,6 +36,16 @@ def get_signal_h4() -> dict:
         sl, tp1, tp2, tp3 = price + sl_dist, price - sl_dist, price - sl_dist * 2, price - sl_dist * 3
     else:
         sl = tp1 = tp2 = tp3 = None
+    reason = f"H4 swing model {conf*100:.1f}%"
+    try:
+        from src.news import status as news_status
+        ns = news_status()
+        if ns.get("blocked") and side != "WAIT":
+            side = "WAIT"
+            reason = f"⚠️ {ns['title']} ({ns['mins_to']:+.0f}min) — paused"
+    except Exception:
+        ns = {}
+        reason = f"H4 swing model {conf*100:.1f}%"
     try:
         from src.signal import _screener
         screener = _screener()
@@ -46,7 +56,7 @@ def get_signal_h4() -> dict:
         "sl": round(sl, 2) if sl else None, "tp1": round(tp1, 2) if tp1 else None,
         "tp2": round(tp2, 2) if tp2 else None, "tp3": round(tp3, 2) if tp3 else None,
         "atr": round(atr, 2), "time": str(df.index[-1]), "tf": "H4",
-        "reason": f"H4 swing model {conf*100:.1f}%", "reasons": [f"H4 swing model {conf*100:.1f}%"],
+        "reason": reason, "reasons": [reason],
         "running_pips": 0.0, "peak_pips": 0.0, "screener": screener,
     }
 

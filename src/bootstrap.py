@@ -10,6 +10,11 @@ def ensure_ready() -> str:
     from src.data_fetch import update_all
     if not DATA_H1_PATH.exists() or not h4_path.exists():
         update_all()
+    try:
+        from src.news import load_events
+        load_events()
+    except Exception as e:
+        print(f"News calendar skipped: {e}")
     if not MODEL_PATH.exists():
         from src.train import train
         train()

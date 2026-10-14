@@ -43,6 +43,21 @@ st.markdown(CSS, unsafe_allow_html=True)
 st.markdown("<h2 style='text-align:center'>🪙 XAUUSD AI Signals</h2>", unsafe_allow_html=True)
 st.caption("Free Plan A • H1/M15 • Educational only, not financial advice.")
 
+# --- News banner ---
+try:
+    from src.news import status as _news_status
+    _ns = _news_status()
+    if _ns.get("blocked"):
+        st.warning(f"⚠️ {_ns['title']} ({_ns['mins_to']:+.0f} min) — new signals paused")
+    elif _ns.get("next"):
+        from datetime import datetime, timezone
+        _t = datetime.fromisoformat(_ns["next"]["time_utc"])
+        _mins = (_t - datetime.now(timezone.utc)).total_seconds() / 60
+        if _mins < 240:
+            st.info(f"📰 Next: {_ns['next']['title']} in {_mins:.0f} min (fcst {_ns['next'].get('forecast','—')})")
+except Exception:
+    pass
+
 BASE = Path(__file__).parent
 h1_path = BASE / "data" / "xau_h1.csv"
 
