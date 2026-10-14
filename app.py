@@ -70,6 +70,13 @@ try:
             if m < 1440:
                 return f"{pre}{int(m // 60)}h {int(m % 60):02d}m {suf}".strip()
             return f"{pre}{int(m // 1440)}d {int((m % 1440) // 60)}h {suf}".strip()
+        try:
+            from src.news_bias import current_bias as _bias
+            _b = _bias()
+            _b_txt = f"{_b['label']} [{_b['action']}]"
+        except Exception:
+            _b, _b_txt = {"why": []}, "n/a"
+        st.caption(f"Positioning bias (not a prediction): **{_b_txt}** — {', '.join(_b.get('why', []))}")
         _now = datetime.now(timezone.utc)
         _rows = []
         for _e in _load_events():
@@ -77,7 +84,7 @@ try:
             if _t > _now - timedelta(minutes=30):
                 _mins = (_t - _now).total_seconds() / 60
                 _when = _dur(_mins)
-                _rows.append((_t, f"{'⭐' if _e.get('key') else '•'} {_e['title']} — {_t:%a %H:%M} UTC ({_when})"))
+                _rows.append((_t, f"{'⭐' if _e.get('key') else '•'} {_e['title']} — {_t:%a %H:%M} UTC ({_when}) → **{_b_txt}**"))
             if len(_rows) >= 5:
                 break
         if _rows:
