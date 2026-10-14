@@ -39,10 +39,21 @@ def load_dxy() -> pd.DataFrame | None:
     return None
 
 
+def resample_h4(h1: pd.DataFrame) -> pd.DataFrame:
+    agg = {"open": "first", "high": "max", "low": "min", "close": "last", "volume": "sum"}
+    return h1.resample("4h").agg(agg).dropna()
+
+
 def update_all() -> None:
-    h1 = fetch_yahoo(GOLD_SYMBOL, "60m", "1y")
+    h1 = fetch_yahoo(GOLD_SYMBOL, "60m", "2y")
     h1.to_csv(DATA_H1_PATH)
     print(f"H1 rows: {len(h1)} -> {DATA_H1_PATH} | last: {h1.index[-1]} close={h1['close'].iloc[-1]:.2f}")
+    h4 = resample_h4(h1)
+    h4.to_csv(DATA_DIR / "xau_h4.csv")
+    print(f"H4 rows: {len(h4)} -> xau_h4.csv")
+    d1 = fetch_yahoo(GOLD_SYMBOL, "1d", "10y")
+    d1.to_csv(DATA_DIR / "xau_d1.csv")
+    print(f"D1 rows: {len(d1)} -> xau_d1.csv")
     m15 = fetch_yahoo(GOLD_SYMBOL, "15m", "1mo")
     m15.to_csv(DATA_M15_PATH)
     print(f"M15 rows: {len(m15)} -> {DATA_M15_PATH}")

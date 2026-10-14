@@ -47,12 +47,16 @@ BASE = Path(__file__).parent
 h1_path = BASE / "data" / "xau_h1.csv"
 
 # --- Signal card ---
+tf = st.radio("Model", ["H1 intraday", "H4 swing ⭐"], index=1, horizontal=True)
 try:
     from src.bootstrap import ensure_ready
     with st.spinner("Loading model (first run trains 1-2 min)..."):
         ensure_ready()
-    from src.signal import get_signal
-    s = get_signal()
+    if tf.startswith("H4"):
+        from src.signal_h4 import get_signal_h4 as _get
+    else:
+        from src.signal import get_signal as _get
+    s = _get()
     side = s["side"]
     side_cls = "side-buy" if side == "BUY" else "side-sell" if side == "SELL" else "side-wait"
     screener = s.get("screener", {})

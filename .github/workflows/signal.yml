@@ -14,6 +14,7 @@ jobs:
       - run: pip install -r requirements.txt
       - run: python -m src.data_fetch
       - run: python -m src.train
+      - run: python -m src.train_h4
       - run: python check_signal.py
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
