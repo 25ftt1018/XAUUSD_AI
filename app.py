@@ -157,22 +157,39 @@ try:
     scr_html = " • ".join(f"{k}: <b>{v}</b>" for k, v in screener.items())
     reasons_html = "".join(f"<div>• {r}</div>" for r in s.get("reasons", []))
 
-    # Live running pips vs spot (fresh signals start ~0, drift live)
+    # Live spot vs signal entry (paper signal, NOT your broker position)
     try:
         from src.data_fetch import live_spot
         _spot = live_spot() or s["price"]
         _d = 1 if side == "BUY" else -1 if side == "SELL" else 0
         _run = (_spot - s["price"]) / 0.1 * _d
     except Exception:
-        _run = s.get("running_pips", 0) or 0
+        _spot, _run = s["price"], s.get("running_pips", 0) or 0
 
     if side == "WAIT":
         status_html = f'<div class="status wait">NO TRADE — {s.get("reason","")} • {s["confidence"]}%</div>'
         live_txt = ""
     else:
-        status_html = (f'<div class="status pulse">RUNNING {_run:+.0f} pip '
-                       f'<span style="float:right">peak +{s.get("peak_pips",0):.0f}</span></div>')
-        live_txt = f'<span class="pill pill-live">live {_run:+.0f} pip</span>'
+        _sl, _tp1 = s.get("sl"), s.get("tp1")
+        if side == "BUY":
+            _hit_sl = _sl is not None and _spot <= _sl
+            _hit_tp1 = _tp1 is not None and _spot >= _tp1
+        else:
+            _hit_sl = _sl is not None and _spot >= _sl
+            _hit_tp1 = _tp1 is not None and _spot <= _tp1
+        _to_tp1 = abs((_tp1 - _spot) / 0.1) if _tp1 else None
+        _to_sl = abs((_spot - _sl) / 0.1) if _sl else None
+        _sub = (f"{_to_tp1:.0f} pip to TP1 • {_to_sl:.0f} pip to SL" if _to_tp1 is not None else "")
+        if _hit_sl:
+            status_html = (f'<div class="status wait">❌ STOPPED OUT {_run:+.0f} pip '
+                           f'<br><span style="font-size:11px">paper signal hit SL — wait for next signal</span></div>')
+        elif _hit_tp1:
+            status_html = (f'<div class="status pulse">✅ TP1 HIT — BREAK EVEN SET ({_run:+.0f} pip)'
+                           f'<br><span style="font-size:11px">{_sub}</span></div>')
+        else:
+            status_html = (f'<div class="status">SIGNAL P/L {_run:+.0f} pip (paper, not your position)'
+                           f'<br><span style="font-size:11px">{_sub}</span></div>')
+        live_txt = f'<span class="pill pill-live">paper {_run:+.0f} pip</span>'
 
     _cell = lambda lbl, val, cls, r="": (
         f'<div class="cell {cls}"><div class="lbl">{lbl}</div><div class="val">{val or "—"}</div>'
