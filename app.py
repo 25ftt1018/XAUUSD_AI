@@ -57,13 +57,26 @@ try:
             st.info(f"📰 Next: {_ns['next']['title']} in {_mins:.0f} min (fcst {_ns['next'].get('forecast','—')})")
     with st.expander("📰 Upcoming high-impact USD news", expanded=False):
         from datetime import datetime, timezone, timedelta
+        def _dur(m: float) -> str:
+            if m < 0:
+                m = -m
+                suf = "ago"
+                pre = ""
+            else:
+                suf = ""
+                pre = "in "
+            if m < 60:
+                return f"{pre}{m:.0f}m {suf}".strip()
+            if m < 1440:
+                return f"{pre}{int(m // 60)}h {int(m % 60):02d}m {suf}".strip()
+            return f"{pre}{int(m // 1440)}d {int((m % 1440) // 60)}h {suf}".strip()
         _now = datetime.now(timezone.utc)
         _rows = []
         for _e in _load_events():
             _t = datetime.fromisoformat(_e["time_utc"])
             if _t > _now - timedelta(minutes=30):
                 _mins = (_t - _now).total_seconds() / 60
-                _when = f"in {_mins:.0f}m" if _mins >= 0 else f"{- _mins:.0f}m ago"
+                _when = _dur(_mins)
                 _rows.append((_t, f"{'⭐' if _e.get('key') else '•'} {_e['title']} — {_t:%a %H:%M} UTC ({_when})"))
             if len(_rows) >= 5:
                 break
