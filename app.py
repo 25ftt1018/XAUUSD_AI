@@ -132,9 +132,16 @@ try:
             _act = _b.get("action", "WAIT")
             _pill = "bull" if _act == "BUY" else "bear" if _act == "SELL" else "neu"
             _b_txt = f"{_b['label']} [{_act}]"
+            _exp = _b.get("expectation", {})
+            _pos = _b.get("positioning", {})
+            _exp_txt = "; ".join(_exp.get("why", [])) or "n/a"
+            _pos_txt = "; ".join(_pos.get("why", [])) or "n/a"
         except Exception:
             _b, _b_txt, _pill = {"why": []}, "n/a", "neu"
-        st.caption(f"Positioning bias, not a prediction: **{_b_txt}** — {', '.join(_b.get('why', []))}")
+            _exp, _pos, _exp_txt, _pos_txt = {}, {}, "n/a", "n/a"
+        st.caption(f"Action: **{_b_txt}** (not a prediction of the surprise)")
+        st.caption(f"Expectation (forecast vs prev): {_exp_txt}")
+        st.caption(f"Positioning (technicals): {_pos_txt}")
         _now = datetime.now(timezone.utc)
         _evs, _err = [], None
         try:
@@ -161,10 +168,18 @@ try:
                 break
         if _rows:
             _why = "".join(f"<div>• {w}</div>" for w in _b.get("why", []))
+            try:
+                from src.news_bias import expectation_for_event as _exp_ev
+            except Exception:
+                _exp_ev = None
             for _t, _e, _when in sorted(_rows, key=lambda r: r[0]):
                 _star = "⭐ " if _e.get("key") else ""
                 _loc = _local_str(_e["time_utc"])
                 _loc_html = f'<div style="font-size:12px;color:#1de9b6;margin:0 0 6px">📍 {_loc}</div>' if _loc else ""
+                try:
+                    _own = _exp_ev(_e.get("title", ""), _e.get("forecast"), _e.get("previous"))["text"] if _exp_ev else "n/a"
+                except Exception:
+                    _own = "n/a"
                 st.markdown(f"""
 <div class="card" style="margin:8px 0">
   <div style="display:flex;justify-content:space-between;align-items:center">
@@ -173,8 +188,8 @@ try:
   </div>
   <div style="font-size:12px;color:#9fb3d9;margin:6px 0">🕐 {_t:%A %H:%M} UTC ({_when})</div>
   {_loc_html}
-  <div class="reasonbox">fcst <b>{_e.get('forecast') or '—'}</b> • prev <b>{_e.get('previous') or '—'}</b><br>{_why}</div>
-  <div class="sent">Signals pause ±30 min around release • bias is positioning, not a prediction</div>
+  <div class="reasonbox">fcst <b>{_e.get('forecast') or '—'}</b> • prev <b>{_e.get('previous') or '—'}</b> → this release: <b>{_own}</b><br>{_why}<br><span style="color:#9fb3d9">Expect: {_exp_txt}<br>Pos: {_pos_txt}</span></div>
+  <div class="sent">Signals pause ±30 min around release • action WAIT on conflict/weak • never predicts the surprise</div>
 </div>""", unsafe_allow_html=True)
             for _t, _e, _when in sorted(_past, key=lambda r: r[0])[-3:]:
                 st.caption(f"{_e['title']} ✅ {_t:%a %H:%M} ({_when})")
