@@ -52,6 +52,22 @@ def resample_h4(h1: pd.DataFrame) -> pd.DataFrame:
     return h4
 
 
+def resample_m30(m15: pd.DataFrame) -> pd.DataFrame:
+    """M15 -> M30 (validated: walk-forward 3/3 folds green, th=0.65, 3h hold)."""
+    agg = {"open": "first", "high": "max", "low": "min", "close": "last", "volume": "sum"}
+    m30 = m15.resample("30min").agg(agg).dropna()
+    # Drop degenerate + forming bars (no repaint)
+    try:
+        if not m30.empty and m30["volume"].iloc[-1] == 0:
+            m30 = m30.iloc[:-1]
+        from datetime import datetime, timezone
+        if not m30.empty and m30.index[-1] + pd.Timedelta(minutes=30) > datetime.now(timezone.utc):
+            m30 = m30.iloc[:-1]
+    except Exception:
+        pass
+    return m30
+
+
 def update_all() -> None:
     h1 = fetch_yahoo(GOLD_SYMBOL, "60m", "2y")
     # Drop forming H1 bar: entry uses last CLOSED candle (no repaint)
@@ -69,9 +85,12 @@ def update_all() -> None:
     d1 = fetch_yahoo(GOLD_SYMBOL, "1d", "10y")
     d1.to_csv(DATA_DIR / "xau_d1.csv")
     print(f"D1 rows: {len(d1)} -> xau_d1.csv")
-    m15 = fetch_yahoo(GOLD_SYMBOL, "15m", "1mo")
+    m15 = fetch_yahoo(GOLD_SYMBOL, "15m", "60d")
     m15.to_csv(DATA_M15_PATH)
     print(f"M15 rows: {len(m15)} -> {DATA_M15_PATH}")
+    m30 = resample_m30(m15)
+    m30.to_csv(DATA_DIR / "xau_m30.csv")
+    print(f"M30 rows: {len(m30)} -> xau_m30.csv")
     try:
         dxy = fetch_yahoo(DXY_SYMBOL, "60m", "1y")
         dxy.to_csv(DXY_H1_PATH)

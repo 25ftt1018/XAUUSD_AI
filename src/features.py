@@ -76,3 +76,28 @@ def make_label(df: pd.DataFrame, horizon: int = 4, tp_pct: float = 0.4, sl_pct: 
         elif dn and first_dn < first_up:
             labels[i] = 0
     return pd.Series(labels, index=df.index, name="label")
+
+
+def make_atr_label(df: pd.DataFrame, horizon: int = 8, tp_mult: float = 0.75, sl_mult: float = 0.5) -> pd.Series:
+    """ATR triple-barrier: +tp_mult*ATR before -sl_mult*ATR => 1, opposite => 0, else 2.
+
+    Validated on M30 (walk-forward 3/3 folds green, th=0.65, 3h hold). Do NOT
+    retune blindly — re-run walk-forward if barriers change.
+    """
+    close = df["close"].values
+    high = df["high"].values
+    low = df["low"].values
+    atr = df["atr14"].values
+    labels = np.full(len(df), 2)
+    for i in range(len(df) - horizon):
+        entry, a = close[i], atr[i]
+        if not np.isfinite(a) or a <= 0:
+            continue
+        up_lv, dn_lv = entry + tp_mult * a, entry - sl_mult * a
+        fu = next((k for k in range(1, horizon + 1) if high[i + k] >= up_lv), 999)
+        fd = next((k for k in range(1, horizon + 1) if low[i + k] <= dn_lv), 999)
+        if fu < fd:
+            labels[i] = 1
+        elif fd < fu:
+            labels[i] = 0
+    return pd.Series(labels, index=df.index, name="label")

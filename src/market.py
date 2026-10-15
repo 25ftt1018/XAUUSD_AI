@@ -15,6 +15,7 @@ from datetime import datetime, timezone
 # Max age of the last CLOSED candle before data counts as stale.
 MAX_AGE_H1_H = 2.5
 MAX_AGE_H4_H = 6.0
+MAX_AGE_M30_H = 2.0
 # Futures (GC=F) vs spot LIVe deviation that marks entry untradable.
 SPOT_MAX_DIFF_ABS = 12.0  # USD; floor, relaxed by 0.5*ATR
 

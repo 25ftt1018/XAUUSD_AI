@@ -1,7 +1,7 @@
-name: signal-hourly
+name: signal-30min
 on:
   schedule:
-    - cron: "15 * * * *"
+    - cron: "5,35 * * * *"
   workflow_dispatch:
 jobs:
   run:
@@ -15,6 +15,7 @@ jobs:
       - run: python -m src.data_fetch
       - run: python -m src.train
       - run: python -m src.train_h4
+      - run: python -m src.train_m30
       - run: python check_signal.py
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}

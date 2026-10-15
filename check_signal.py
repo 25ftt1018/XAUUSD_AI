@@ -22,6 +22,17 @@ def _h4():
                 "reasons": [], "time": "-", "screener": {}}
 
 
+def _m30():
+    try:
+        from src.signal_m30 import get_signal_m30
+        return get_signal_m30()
+    except Exception as e:
+        print(f"M30 skipped: {e}")
+        return {"side": "WAIT", "confidence": 0.0, "price": 0.0, "sl": None,
+                "tp1": None, "tp2": None, "tp3": None, "reason": "M30 unavailable",
+                "reasons": [], "time": "-", "screener": {}}
+
+
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--force", action="store_true", help="send even on WAIT (for testing)")
@@ -46,7 +57,9 @@ if __name__ == "__main__":
     print("H1:", s)
     h4 = _h4()
     print("H4:", h4)
-    for sig, tag in ((h4, "H4 SWING"), (s, "H1")):
+    m30 = _m30()
+    print("M30:", m30)
+    for sig, tag in ((h4, "H4 SWING"), (s, "H1"), (m30, "M30")):
         if sig["side"] != "WAIT" or args.force:
             if sig["side"] != "WAIT" and not args.force:
                 if count_today() >= MAX_SIGNALS_PER_DAY:
@@ -58,5 +71,5 @@ if __name__ == "__main__":
                     continue
             msg = format_signal(sig).replace("XAUUSD", f"XAUUSD [{tag}]", 1)
             send(msg)
-    if s["side"] == "WAIT" and h4["side"] == "WAIT" and not args.force:
+    if s["side"] == "WAIT" and h4["side"] == "WAIT" and m30["side"] == "WAIT" and not args.force:
         print("WAIT -> no push (avoids spam)")
