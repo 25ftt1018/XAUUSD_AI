@@ -7,10 +7,20 @@ def _creds():
     token = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip().strip('"').strip("'")
     chat = os.environ.get("TELEGRAM_CHAT_ID", "").strip().strip('"').strip("'")
     if not token or not chat:
+        # Read Streamlit secrets file directly: importing streamlit from a
+        # plain `python check_signal.py` run prints the "streamlit run" warning.
         try:
-            import streamlit as st
-            token = token or str(st.secrets.get("TELEGRAM_BOT_TOKEN", "")).strip()
-            chat = chat or str(st.secrets.get("TELEGRAM_CHAT_ID", "")).strip()
+            from pathlib import Path
+            txt = (Path(__file__).parent.parent / ".streamlit" / "secrets.toml").read_text()
+            import re
+            if not token:
+                m = re.search(r'TELEGRAM_BOT_TOKEN\s*=\s*["\']([^"\']+)["\']', txt)
+                if m:
+                    token = m.group(1).strip()
+            if not chat:
+                m = re.search(r'TELEGRAM_CHAT_ID\s*=\s*["\']([^"\']+)["\']', txt)
+                if m:
+                    chat = m.group(1).strip()
         except Exception:
             pass
     return token.strip(), chat.strip()
@@ -45,6 +55,8 @@ def format_signal(s: dict) -> str:
         return f"⏸ XAUUSD WAIT @ {s['price']} ({s['confidence']}%)\n{s.get('reason','')}\n{s['time']}"
     icon = "🟢" if s["side"] == "BUY" else "🔴"
     reasons = "\n".join(f"• {r}" for r in s.get("reasons", []))
-    return (f"{icon} XAUUSD {s['side']} @ {s['price']}\n"
+    spot = s.get("spot")
+    spot_line = f"\nSpot: {spot:.2f} (entry GC=F futures {s['price']})" if spot else "\nEntry: GC=F futures (spot n/a)"
+    return (f"{icon} XAUUSD {s['side']} @ {s['price']}{spot_line}\n"
             f"Model: {s['confidence']}% (hist ~{s.get('hist_conf', 50)}%)\nSL: {s['sl']} | TP1: {s['tp1']} | TP2: {s['tp2']} | TP3: {s.get('tp3')}\n"
             f"{reasons}\n{s['time']}")

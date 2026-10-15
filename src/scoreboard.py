@@ -72,6 +72,23 @@ def mark_outcomes() -> pd.DataFrame:
     return log
 
 
+def count_today() -> int:
+    """Signals logged today (UTC) — enforces MAX_SIGNALS_PER_DAY."""
+    try:
+        log = pd.read_csv(LOG)
+    except Exception:
+        return 0
+    if log.empty:
+        return 0
+    try:
+        from datetime import datetime, timezone
+        today = datetime.now(timezone.utc).date().isoformat()
+        times = pd.to_datetime(log["time"], utc=True, errors="coerce")
+        return int((times.dt.date.astype(str) == today).sum())
+    except Exception:
+        return len(log)
+
+
 def summary(log: pd.DataFrame) -> dict:
     closed = log[log["outcome"].isin(["TP1", "SL"])]
     return {

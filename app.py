@@ -1,15 +1,16 @@
-"""Mobile-first Streamlit UI — signal-card style (inspired by 3rd-eye screenshot)."""
+"""Streamlit UI — responsive signal cards (phone + desktop)."""
 import streamlit as st
-import pandas as pd
 from pathlib import Path
 
-st.set_page_config(page_title="XAUUSD AI", page_icon="🪙", layout="centered")
+st.set_page_config(page_title="XAUUSD AI", page_icon="🪙", layout="wide")
 
 CSS = """
 <style>
-body { background:#070b16; }
+:root { --bg:#070b16; --card:#0d1426; --up:#1de9b6; --down:#ff6b6b; }
+body { background:var(--bg); }
+.block-container { max-width:1100px; margin:0 auto; padding:1rem 16px 3rem; }
 .card { background:linear-gradient(180deg,#0d1426,#0a0f1f); border:1px solid #1de9b6aa;
-  border-radius:18px; padding:16px; box-shadow:0 0 24px #1de9b633; }
+  border-radius:18px; padding:16px; box-shadow:0 0 24px #1de9b633; max-width:640px; margin:0 auto; }
 .card.buy { border-color:#1de9b6; box-shadow:0 0 32px #1de9b655; }
 .card.sell { border-color:#ff6b6b; box-shadow:0 0 32px #ff6b6b55; }
 .card.wait { border-color:#444; box-shadow:none; }
@@ -32,8 +33,10 @@ body { background:#070b16; }
 .entry { background:#0a2540; border:1px solid #2f81f7aa; border-radius:12px; text-align:center;
   padding:12px; margin:8px 0; }
 .entry .lbl { font-size:11px; letter-spacing:2px; color:#9fb3d9; }
-.entry .val { font-size:44px; font-weight:900; color:#fff; line-height:1.1; }
+.entry .val { font-size:clamp(32px,8vw,44px); font-weight:900; color:#fff; line-height:1.1; }
+.entry .spot { font-size:12px; color:#9fb3d9; margin-top:4px; }
 .grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:8px 0; }
+@media (min-width:900px) { .grid { grid-template-columns:repeat(4,1fr); } .card { max-width:760px; } }
 .cell { border-radius:10px; padding:10px 8px; text-align:center; }
 .cell .lbl { font-size:10px; letter-spacing:1px; opacity:.85; }
 .cell .val { font-size:19px; font-weight:800; }
@@ -174,9 +177,8 @@ except Exception as _outer_e:
     st.warning(f"News section error: {_outer_e}")
 
 BASE = Path(__file__).parent
-h1_path = BASE / "data" / "xau_h1.csv"
 
-# --- Signal card ---
+# --- Signal card (always on top) ---
 tf = st.radio("Model", ["H1 intraday", "H4 swing ⭐"], index=1, horizontal=True)
 try:
     from src.bootstrap import ensure_ready
@@ -235,6 +237,7 @@ try:
         f'<div class="cell {cls}"><div class="lbl">{lbl}</div><div class="val">{val or "—"}</div>'
         f'<div class="r">{r}</div></div>')
     _off = "off" if side == "WAIT" else ""
+    _spot_line = f"Spot {_spot:,.2f} • GC=F futures entry" if _spot else "GC=F futures entry (spot n/a)"
 
     st.markdown(f"""
 <div class="card {card_cls}">
@@ -249,7 +252,7 @@ try:
   {status_html}
   <div style="font-size:11px;color:#8b93b8;letter-spacing:1px">SIGNAL REASON</div>
   <div class="reasonbox">{reasons_html}</div>
-  <div class="entry"><div class="lbl">ENTRY</div><div class="val">{s["price"]:,.2f}</div></div>
+  <div class="entry"><div class="lbl">ENTRY</div><div class="val">{s["price"]:,.2f}</div><div class="spot">{_spot_line}</div></div>
   <div class="grid">
     {_cell("STOP LOSS (SL)", f'{s["sl"]:,.2f}' if s["sl"] else None, "sl " + _off)}
     {_cell("TP 1 ✓", f'{s["tp1"]:,.2f}' if s["tp1"] else None, "tp " + _off, "+1R")}
@@ -262,55 +265,42 @@ try:
 except Exception as e:
     st.warning(f"Signal unavailable. ({e})")
 
-# --- Adjustable live chart ---
-st.subheader("Live chart")
-with st.expander("⚙️ Chart settings", expanded=False):
-    tv_h = st.slider("Chart height", 400, 900, 620, 20)
-    tv_int = st.selectbox("Timeframe", ["15", "60", "240", "D"], index=1)
-    tv_theme = st.selectbox("Theme", ["dark", "light"], index=0)
-st.components.v1.html(
-    f'<div style="height:{tv_h}px"><div id="tv" style="height:100%"></div>'
-    '<script src="https://s3.tradingview.com/tv.js"></script>'
-    f'<script>new TradingView.widget({{symbol:"OANDA:XAUUSD",interval:"{tv_int}",theme:"{tv_theme}",'
-    'style:"1",locale:"en",hide_side_toolbar:false,allow_symbol_change:true,'
-    f'container_id:"tv",height:{tv_h},width:"100%"}});</script></div>',
-    height=tv_h + 10)
+tab_chart, tab_board = st.tabs(["📈 Chart", "📒 Scoreboard"])
+with tab_chart:
+    # --- Live chart only (price-history line chart removed) ---
+    with st.expander("⚙️ Chart settings", expanded=False):
+        tv_h = st.slider("Chart height", 400, 900, 620, 20)
+        tv_int = st.selectbox("Timeframe", ["15", "60", "240", "D"], index=1)
+        tv_theme = st.selectbox("Theme", ["dark", "light"], index=0)
+    st.components.v1.html(
+        f'<div style="height:{tv_h}px"><div id="tv" style="height:100%"></div>'
+        '<script src="https://s3.tradingview.com/tv.js"></script>'
+        f'<script>new TradingView.widget({{symbol:"OANDA:XAUUSD",interval:"{tv_int}",theme:"{tv_theme}",'
+        'style:"1",locale:"en",hide_side_toolbar:false,allow_symbol_change:true,'
+        f'container_id:"tv",height:{tv_h},width:"100%"}});</script></div>',
+        height=tv_h + 10)
 
-# --- History chart (non-squeezed) ---
-if h1_path.exists():
-    st.subheader("Price history")
-    n = st.slider("Candles", 50, 300, 120, 10)
-    h = st.slider("History height", 200, 500, 300, 20)
-    df = pd.read_csv(h1_path, index_col=0, parse_dates=True).tail(n)
-    df2 = df.reset_index()
-    time_col = df2.columns[0]
-    import altair as alt
-    chart = (
-        alt.Chart(df2).mark_line(point=False).encode(
-            x=alt.X(f"{time_col}:T", title=""),
-            y=alt.Y("close:Q", title="XAUUSD", scale=alt.Scale(zero=False)),
-            tooltip=[f"{time_col}:T", "close:Q"],
-        ).properties(height=h).interactive()
-    )
-    st.altair_chart(chart, use_container_width=True)
-
-st.divider()
-st.subheader("📒 Paper scoreboard")
-try:
-    from src.scoreboard import mark_outcomes, summary
-    _log = mark_outcomes()
-    if _log is not None and not _log.empty:
-        _sum = summary(_log)
-        _c1, _c2, _c3, _c4 = st.columns(4)
-        _c1.metric("Signals", _sum["total"])
-        _c2.metric("TP1 / SL", f"{_sum['tp1']} / {_sum['sl']}")
-        _c3.metric("Winrate", f"{_sum['winrate']}%")
-        _c4.metric("Net pips", f"{_sum['net_pips']:+.0f}")
-        st.dataframe(_log[["time", "tf", "side", "entry", "sl", "tp1",
-                            "conf", "hist_conf", "outcome", "pips"]].tail(20),
-                     use_container_width=True)
-    else:
-        st.caption("No paper signals logged yet - first BUY/SELL will appear here with auto-marked TP1/SL.")
-except Exception as _e:
-    st.caption(f"Scoreboard unavailable: {_e}")
+with tab_board:
+    _tf_filter = st.selectbox("Filter", ["All", "H1", "H4 SWING", "OPEN", "TP1", "SL"], index=0)
+    try:
+        from src.scoreboard import mark_outcomes, summary
+        _log = mark_outcomes()
+        if _log is not None and not _log.empty:
+            if _tf_filter in ("H1", "H4 SWING"):
+                _log = _log[_log["tf"] == _tf_filter]
+            elif _tf_filter in ("OPEN", "TP1", "SL"):
+                _log = _log[_log["outcome"] == _tf_filter]
+            _sum = summary(_log)
+            _c1, _c2, _c3, _c4 = st.columns(4)
+            _c1.metric("Signals", _sum["total"])
+            _c2.metric("TP1 / SL", f"{_sum['tp1']} / {_sum['sl']}")
+            _c3.metric("Winrate", f"{_sum['winrate']}%")
+            _c4.metric("Net pips", f"{_sum['net_pips']:+.0f}")
+            st.dataframe(_log[["time", "tf", "side", "entry", "sl", "tp1",
+                                "conf", "hist_conf", "outcome", "pips"]].tail(20),
+                         use_container_width=True)
+        else:
+            st.caption("No paper signals logged yet - first BUY/SELL will appear here with auto-marked TP1/SL.")
+    except Exception as _e:
+        st.caption(f"Scoreboard unavailable: {_e}")
 st.caption("Telegram bot sends push alerts. Website = detail view.")

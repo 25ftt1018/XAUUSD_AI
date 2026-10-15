@@ -107,6 +107,7 @@ def get_signal() -> dict:
     if ns.get("blocked") and side != "WAIT":
         side = "WAIT"
         reason = f"⚠️ {ns['title']} ({ns['mins_to']:+.0f}min) — paused"
+        sl = tp1 = tp2 = tp3 = None
 
     # Running / peak pips from last 5 bars vs entry (fresh signal => ~0)
     try:
@@ -138,14 +139,43 @@ def get_signal() -> dict:
     from src.calibration import hist_conf
     hc = round(hist_conf(conf), 1)
 
-    return {
+    try:
+        from src.data_fetch import live_spot as _live
+        _spot = _live()
+    except Exception:
+        _spot = None
+    out = {
         "side": side, "confidence": round(conf * 100, 1), "hist_conf": hc, "price": round(price, 2),
         "sl": round(sl, 2) if sl else None, "tp1": round(tp1, 2) if tp1 else None,
         "tp2": round(tp2, 2) if tp2 else None, "tp3": round(tp3, 2) if tp3 else None,
         "atr": round(atr, 2), "time": str(df.index[-1]), "reason": reason,
         "reasons": reasons, "running_pips": round(float(running), 0),
         "peak_pips": round(float(max(mfe, 0)), 0), "screener": _screener(),
+        "spot": round(float(_spot), 2) if _spot else None, "entry_source": "GC=F futures",
     }
+    if side != "WAIT":
+        from src.market import is_market_open, check_fresh, check_spot, MAX_AGE_H1_H, now_utc
+        _now = now_utc()
+        _open, _open_why = is_market_open(_now)
+        _fresh, _fresh_why = check_fresh(df.index[-1], MAX_AGE_H1_H, _now)
+        if not _open:
+            out["side"] = "WAIT"
+            out["reason"] = f"⏸ {_open_why}"
+            out["reasons"] = reasons + [out["reason"]]
+            out["sl"] = out["tp1"] = out["tp2"] = out["tp3"] = None
+        elif not _fresh:
+            out["side"] = "WAIT"
+            out["reason"] = f"⏸ {_fresh_why}"
+            out["reasons"] = reasons + [out["reason"]]
+            out["sl"] = out["tp1"] = out["tp2"] = out["tp3"] = None
+        else:
+            _ok, _why = check_spot(price, _spot, atr)
+            if not _ok:
+                out["side"] = "WAIT"
+                out["reason"] = f"⏸ {_why} — no trade"
+                out["reasons"] = reasons + [out["reason"]]
+                out["sl"] = out["tp1"] = out["tp2"] = out["tp3"] = None
+    return out
 
 
 if __name__ == "__main__":

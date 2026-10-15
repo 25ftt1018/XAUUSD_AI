@@ -15,6 +15,16 @@ def get_signal_h4() -> dict:
     from src.features import add_features
     raw = pd.read_csv(H4_PATH, index_col=0, parse_dates=True)
     df = add_features(raw)
+    candle_time = df.index[-1]
+    from src.market import is_market_open, check_fresh, check_spot, MAX_AGE_H4_H, now_utc
+    _now = now_utc()
+    _open, _open_why = is_market_open(_now)
+    _fresh, _fresh_why = check_fresh(candle_time, MAX_AGE_H4_H, _now)
+    try:
+        from src.data_fetch import live_spot
+        _spot = live_spot()
+    except Exception:
+        _spot = None
     last = df.iloc[[-1]].copy()
     for c in feats:
         if c not in last.columns:
@@ -52,14 +62,34 @@ def get_signal_h4() -> dict:
     except Exception:
         screener = {}
     from src.calibration import hist_conf
-    return {
+    base = {
         "side": side, "confidence": round(conf * 100, 1), "hist_conf": round(hist_conf(conf), 1), "price": round(price, 2),
         "sl": round(sl, 2) if sl else None, "tp1": round(tp1, 2) if tp1 else None,
         "tp2": round(tp2, 2) if tp2 else None, "tp3": round(tp3, 2) if tp3 else None,
         "atr": round(atr, 2), "time": str(df.index[-1]), "tf": "H4",
         "reason": reason, "reasons": [reason],
         "running_pips": 0.0, "peak_pips": 0.0, "screener": screener,
+        "spot": round(float(_spot), 2) if _spot else None, "entry_source": "GC=F futures",
     }
+    # Stale/closed-market and spot-deviation gates: never send actionable entries off old data.
+    if side != "WAIT":
+        if not _open:
+            base["side"] = "WAIT"
+            base["reason"] = f"⏸ {_open_why} — last H4 {candle_time}"
+            base["reasons"] = [reason, base["reason"]]
+        elif not _fresh:
+            base["side"] = "WAIT"
+            base["reason"] = f"⏸ {_fresh_why} — market may be closed"
+            base["reasons"] = [reason, base["reason"]]
+        else:
+            _ok, _why = check_spot(price, _spot, atr)
+            if not _ok:
+                base["side"] = "WAIT"
+                base["reason"] = f"⏸ {_why} — no trade"
+                base["reasons"] = [reason, base["reason"]]
+    if base["side"] == "WAIT":
+        base["sl"] = base["tp1"] = base["tp2"] = base["tp3"] = None
+    return base
 
 
 if __name__ == "__main__":
