@@ -8,7 +8,8 @@ CSS = """
 <style>
 :root { --bg:#070b16; --card:#0d1426; --up:#1de9b6; --down:#ff6b6b; }
 body { background:var(--bg); }
-.block-container { max-width:1100px; margin:0 auto; padding:1rem 16px 3rem; }
+.block-container { max-width:1100px; margin:0 auto; padding:3rem 16px 3rem; }
+h2 { margin-top:0.5rem !important; line-height:1.25 !important; }
 .card { background:linear-gradient(180deg,#0d1426,#0a0f1f); border:1px solid #1de9b6aa;
   border-radius:18px; padding:16px; box-shadow:0 0 24px #1de9b633; max-width:640px; margin:0 auto; }
 .card.buy { border-color:#1de9b6; box-shadow:0 0 32px #1de9b655; }
@@ -67,7 +68,7 @@ body { background:var(--bg); }
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
-st.markdown("<h2 style='text-align:center'>🪙 XAUUSD AI Signals</h2>", unsafe_allow_html=True)
+st.markdown("<h2 style='text-align:center;font-size:clamp(22px,5vw,32px)'>🪙 XAUUSD AI Signals</h2>", unsafe_allow_html=True)
 st.caption("Free Plan A • H1/M15 • Educational only, not financial advice.")
 
 with st.expander("⚙️ Display", expanded=False):
