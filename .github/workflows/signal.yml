@@ -6,6 +6,8 @@ on:
 jobs:
   run:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -20,3 +22,12 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      # Scoreboard lives on Cloud, not the runner: push the log back so the
+      # web app can display cron-fired signals. No-op when nothing new.
+      - run: |
+          git config user.name "xau-bot"
+          git config user.email "xau-bot@local"
+          git add -f data/signals_log.csv || true
+          git diff --cached --quiet || git commit -m "scoreboard: cron signal log" || true
+          git pull --rebase || true
+          git push || true

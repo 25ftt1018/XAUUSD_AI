@@ -239,6 +239,15 @@ try:
     else:
         from src.signal import get_signal as _get
     s = _get()
+    try:
+        # Paper-log live views too: cron runs on a different machine (GitHub
+        # runner) whose CSV never reaches Cloud. Dedupe-by-id makes refreshes safe.
+        if s.get("side") in ("BUY", "SELL") and s.get("sl"):
+            from src.scoreboard import log_signal as _weblog
+            _tag = "M30" if tf.startswith("M30") else "H4 SWING" if tf.startswith("H4") else "H1"
+            _weblog(s, _tag)
+    except Exception:
+        pass
     from datetime import datetime, timezone
     _loaded = datetime.now(timezone.utc)
     side = s["side"]
