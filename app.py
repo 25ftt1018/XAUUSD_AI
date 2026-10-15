@@ -227,15 +227,15 @@ except Exception:
     pass
 
 # --- Signal card (always on top) ---
-tf = st.radio("Model", ["H1 intraday", "H4 swing ⭐", "M30 scalp"], index=1, horizontal=True)
+tf = st.radio("Model", ["M30 scalp", "H1 intraday", "H4 swing ⭐"], index=0, horizontal=True)
 try:
     from src.bootstrap import ensure_ready
     with st.spinner("Loading model (first run trains 1-2 min)..."):
         ensure_ready()
-    if tf.startswith("H4"):
-        from src.signal_h4 import get_signal_h4 as _get
-    elif tf.startswith("M30"):
+    if tf.startswith("M30"):
         from src.signal_m30 import get_signal_m30 as _get
+    elif tf.startswith("H4"):
+        from src.signal_h4 import get_signal_h4 as _get
     else:
         from src.signal import get_signal as _get
     s = _get()

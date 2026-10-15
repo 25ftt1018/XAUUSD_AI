@@ -59,7 +59,7 @@ if __name__ == "__main__":
     print("H4:", h4)
     m30 = _m30()
     print("M30:", m30)
-    for sig, tag in ((h4, "H4 SWING"), (s, "H1"), (m30, "M30")):
+    for sig, tag in ((m30, "M30"), (s, "H1"), (h4, "H4 SWING")):
         if sig["side"] != "WAIT" or args.force:
             if sig["side"] != "WAIT" and not args.force:
                 if count_today() >= MAX_SIGNALS_PER_DAY:
