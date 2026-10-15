@@ -93,6 +93,16 @@ try:
             st.info(f"📰 Next: {_ns['next']['title']} in {_mins:.0f} min (fcst {_ns['next'].get('forecast','—')})")
     with st.expander("📰 Upcoming high-impact USD news", expanded=False):
         from datetime import datetime, timezone, timedelta
+        _TZ_OPTS = ["Africa/Lagos", "UTC", "Europe/London", "America/New_York", "Europe/Berlin", "Asia/Dubai", "Asia/Singapore"]
+        _tz_name = st.selectbox("Show times in", _TZ_OPTS, index=0, key="tzpick")
+        def _local_str(iso_utc: str) -> str:
+            try:
+                from zoneinfo import ZoneInfo
+                _t = datetime.fromisoformat(iso_utc)
+                _l = _t.astimezone(ZoneInfo(_tz_name))
+                return _l.strftime("%A %H:%M") + f" ({_tz_name.split('/')[-1].replace('_', ' ')})"
+            except Exception:
+                return ""
         def _dur(m: float) -> str:
             if m < 0:
                 m = -m
@@ -152,6 +162,8 @@ try:
             _why = "".join(f"<div>• {w}</div>" for w in _b.get("why", []))
             for _t, _e, _when in sorted(_rows, key=lambda r: r[0]):
                 _star = "⭐ " if _e.get("key") else ""
+                _loc = _local_str(_e["time_utc"])
+                _loc_html = f'<div style="font-size:12px;color:#1de9b6;margin:0 0 6px">📍 {_loc}</div>' if _loc else ""
                 st.markdown(f"""
 <div class="card" style="margin:8px 0">
   <div style="display:flex;justify-content:space-between;align-items:center">
@@ -159,6 +171,7 @@ try:
     <div><span class="{_pill}">{_b_txt}</span></div>
   </div>
   <div style="font-size:12px;color:#9fb3d9;margin:6px 0">🕐 {_t:%A %H:%M} UTC ({_when})</div>
+  {_loc_html}
   <div class="reasonbox">fcst <b>{_e.get('forecast') or '—'}</b> • prev <b>{_e.get('previous') or '—'}</b><br>{_why}</div>
   <div class="sent">Signals pause ±30 min around release • bias is positioning, not a prediction</div>
 </div>""", unsafe_allow_html=True)
