@@ -56,6 +56,14 @@ body { background:var(--bg); }
   padding:1px 8px; font-weight:800; white-space:nowrap; }
 .neu { background:#ffffff11; color:#aaa; border:1px solid #555; border-radius:6px;
   padding:1px 8px; font-weight:800; white-space:nowrap; }
+.quote { display:flex; gap:8px; align-items:stretch; max-width:640px; margin:0 auto 10px; }
+.qbox { flex:1; border-radius:10px; padding:8px 6px; text-align:center; font-weight:900; }
+.qbox .v { font-size:clamp(17px,4.5vw,22px); font-variant-numeric:tabular-nums; }
+.qbox .t { font-size:11px; letter-spacing:2px; opacity:.85; }
+.q-bid { background:#2a0d0d; border:1px solid #ff5252aa; color:#ff8a80; }
+.q-ask { background:#0a1c3f; border:1px solid #2f81f7aa; color:#7fb3ff; }
+.q-mid { flex:0 0 64px; align-self:center; text-align:center; color:#888; font-size:12px; font-weight:800; }
+@media (min-width:900px) { .quote { max-width:760px; } }
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
@@ -177,6 +185,33 @@ except Exception as _outer_e:
     st.warning(f"News section error: {_outer_e}")
 
 BASE = Path(__file__).parent
+
+# --- Live quote bar (MT5-style bid/ask, indicative) ---
+QUOTE_SPREAD_USD = 0.51  # typical gold spread; gold-api gives mid only
+try:
+    from src.data_fetch import live_spot as _quote_spot_fn
+    from datetime import datetime, timezone as _tz
+    _mid = _quote_spot_fn()
+    if _mid:
+        from datetime import datetime as _dt
+        _now_utc = _dt.now(_tz.utc)
+        _half = QUOTE_SPREAD_USD / 2
+        _bid, _ask = _mid - _half, _mid + _half
+        _prev = st.session_state.get("_last_mid")
+        st.session_state["_last_mid"] = _mid
+        _arrow = "▲" if _prev and _mid > _prev else "▼" if _prev and _mid < _prev else "●"
+        _pts = QUOTE_SPREAD_USD / 0.01
+        st.markdown(f"""
+<div class="quote">
+  <div class="qbox q-bid"><div class="v">{_bid:,.3f}</div><div class="t">SELL</div></div>
+  <div class="q-mid">{_arrow}<br>{_pts:.1f}</div>
+  <div class="qbox q-ask"><div class="v">{_ask:,.3f}</div><div class="t">BUY</div></div>
+</div>
+<div style="text-align:center;font-size:11px;color:#888;max-width:640px;margin:-4px auto 10px">LIVE indicative — follows chart • as of {_now_utc:%H:%M:%S} UTC<br>mid {_mid:,.2f} via gold-api, spread ${QUOTE_SPREAD_USD:.2f} • not your broker quote</div>""", unsafe_allow_html=True)
+    else:
+        st.caption("Live quote unavailable (gold-api offline) — showing signal entry only.")
+except Exception:
+    pass
 
 # --- Signal card (always on top) ---
 tf = st.radio("Model", ["H1 intraday", "H4 swing ⭐"], index=1, horizontal=True)

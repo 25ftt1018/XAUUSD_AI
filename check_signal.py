@@ -25,7 +25,13 @@ def _h4():
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--force", action="store_true", help="send even on WAIT (for testing)")
+    ap.add_argument("--test-telegram", action="store_true", help="send a harmless ping only, no data refresh / no logging")
     args = ap.parse_args()
+    if args.test_telegram:
+        from datetime import datetime, timezone
+        ok = send(f"✅ XAUUSD_AI telegram OK ({datetime.now(timezone.utc):%Y-%m-%d %H:%M} UTC) — no signal, connectivity test only.")
+        print("test-telegram:", "sent" if ok else "FAILED (check token/chat id)")
+        raise SystemExit(0 if ok else 1)
     ensure_ready()
     from src.data_fetch import update_all
     update_all()
