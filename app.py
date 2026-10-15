@@ -93,7 +93,7 @@ try:
             st.info(f"📰 Next: {_ns['next']['title']} in {_mins:.0f} min (fcst {_ns['next'].get('forecast','—')})")
     with st.expander("📰 Upcoming high-impact USD news", expanded=False):
         from datetime import datetime, timezone, timedelta
-        _TZ_OPTS = ["Africa/Lagos", "UTC", "Europe/London", "America/New_York", "Europe/Berlin", "Asia/Dubai", "Asia/Singapore"]
+        _TZ_OPTS = ["Asia/Manila", "Asia/Singapore", "UTC", "Africa/Lagos", "Europe/London", "America/New_York", "Europe/Berlin", "Asia/Dubai"]
         _tz_name = st.selectbox("Show times in", _TZ_OPTS, index=0, key="tzpick")
         def _local_str(iso_utc: str) -> str:
             try:
